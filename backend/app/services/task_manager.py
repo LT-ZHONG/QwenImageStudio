@@ -146,7 +146,10 @@ class TaskManager:
                 raise
             except Exception as e:  # noqa: BLE001
                 log.exception("task %s crashed", task_id)
-                await self._update(task_id, status="failed", error_message=str(e), completed_at=_now())
+                try:
+                    await self._update(task_id, status="failed", error_message=str(e), completed_at=_now())
+                except Exception:  # noqa: BLE001 - the worker loop must survive a failing DB write
+                    log.exception("could not record failure of task %s", task_id)
             finally:
                 self._current = None
                 self.queue.task_done()

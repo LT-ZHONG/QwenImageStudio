@@ -33,10 +33,20 @@ ProgressCb = Callable[[int, int, str | None], Awaitable[None]]
 
 
 class ComfyUIClient:
-    def __init__(self, base_url: str, timeout: float = 30.0, poll_interval: float = 2.0):
+    def __init__(
+        self,
+        base_url: str,
+        timeout: float = 30.0,
+        poll_interval: float = 2.0,
+        outage_grace: float = 90.0,
+        client_id: str | None = None,
+    ):
+        self.outage_grace = outage_grace
         self.base_url = base_url.rstrip("/")
         self.ws_url = self.base_url.replace("http", "ws", 1) + "/ws"
-        self.client_id = uuid.uuid4().hex
+        # ComfyUI routes a prompt's progress events to the client_id that submitted it, so this
+        # must survive restarts of this service (see main.py) for progress to keep flowing.
+        self.client_id = client_id or uuid.uuid4().hex
         self.poll_interval = poll_interval
         self._http = httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
 
@@ -140,6 +150,7 @@ class ComfyUIClient:
         ws = None
         last_poll = 0.0
         misses = 0
+        outage_since: float | None = None
         force_poll = True
         try:
             while time.monotonic() < deadline:
@@ -169,14 +180,23 @@ class ComfyUIClient:
                 force_poll = False
                 last_poll = time.monotonic()
 
-                entry = (await self.get_history(prompt_id)).get(prompt_id)
+                try:
+                    entry = (await self.get_history(prompt_id)).get(prompt_id)
+                    queue = None if entry else await self.get_queue()
+                    outage_since = None
+                except ComfyUIUnavailable as e:
+                    # ComfyUI is briefly unreachable (restart, GC pause): keep waiting, don't fail the task
+                    outage_since = outage_since or time.monotonic()
+                    if time.monotonic() - outage_since > self.outage_grace:
+                        raise ComfyUIUnavailable(f"ComfyUI 持续不可用超过 {self.outage_grace:.0f} 秒") from e
+                    log.warning("ComfyUI unreachable while waiting for %s: %s", prompt_id, e)
+                    continue
                 if entry:
                     result = self._parse_history(entry)
                     if result:
                         return result
                     misses = 0
                     continue
-                queue = await self.get_queue()
                 known = [i[1] for i in queue.get("queue_running", []) + queue.get("queue_pending", [])]
                 if prompt_id in known:
                     misses = 0

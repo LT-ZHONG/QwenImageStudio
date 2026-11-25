@@ -6,3 +6,4 @@ backend/storage/
 node_modules/
 frontend/dist/
 .env
+backend/backups/

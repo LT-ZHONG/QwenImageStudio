@@ -19,7 +19,18 @@ class Settings(BaseSettings):
     http_timeout: float = 30.0
     task_timeout: float = 3600.0
     poll_interval: float = 2.0
+    frontend_dist: Path = BACKEND_DIR.parent / "frontend" / "dist"
+    log_dir: Path | None = None  # default: <storage_dir>/logs
+    log_level: str = "INFO"
+    backup_dir: Path = BACKEND_DIR / "backups"
+    backup_keep: int = 14
+    orphan_upload_hours: float = 24.0  # uploads never used by a task are removed after this long
+    maintenance_interval_hours: float = 6.0
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    @property
+    def logs_path(self) -> Path:
+        return self.log_dir or (self.storage_dir / "logs")
 
     @property
     def db_file(self) -> Path:
