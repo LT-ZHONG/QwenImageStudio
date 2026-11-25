@@ -1,0 +1,29 @@
+{
+  "workflow_file": "workflows/Qwen_i2i_api.json",
+  "model": "qwen-image-2.1",
+  "nodes": {
+    "load_image": {"id": "470", "class_type": "LoadImage"},
+    "text_encode": {"id": "486", "class_type": "TextEncodeQwenImage21"},
+    "sampler": {"id": "483", "class_type": "KSampler"},
+    "save_image": {"id": "461", "class_type": "SaveImageAdvanced"},
+    "switch": {"id": "484", "class_type": "ComfySwitchNode"},
+    "unet": {"id": "478", "class_type": "UNETLoader"},
+    "clip": {"id": "479", "class_type": "CLIPLoader"},
+    "vae": {"id": "480", "class_type": "VAELoader"}
+  },
+  "remove_nodes": ["472"],
+  "fixed_inputs": [
+    {"node": "switch", "input": "switch", "value": false}
+  ],
+  "params": {
+    "image": {"node": "load_image", "input": "image"},
+    "prompt": {"node": "text_encode", "input": "prompt"},
+    "negative_prompt": {"node": "text_encode", "input": "negative_prompt"},
+    "resolution": {"node": "text_encode", "input": "resolution", "default": 1024, "min": 512, "max": 2048, "step": 64},
+    "seed": {"node": "sampler", "input": "seed", "min": 0, "max": 9007199254740991},
+    "steps": {"node": "sampler", "input": "steps", "default": 25, "min": 1, "max": 50},
+    "cfg": {"node": "sampler", "input": "cfg", "default": 1.0, "min": 1.0, "max": 5.0},
+    "denoise": {"node": "sampler", "input": "denoise", "default": 1.0, "min": 0.1, "max": 1.0}
+  },
+  "filename_prefix": {"node": "save_image", "input": "filename_prefix", "prefix": "QwenStudio"}
+}
