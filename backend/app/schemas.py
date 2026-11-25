@@ -46,6 +46,7 @@ class UploadOut(ORM):
     height: int
     created_at: datetime
     url: str = ""
+    thumbnail_url: str = ""
 
 
 # ---- generations -----------------------------------------------------------
@@ -126,3 +127,31 @@ class Page[T](BaseModel):
     total: int
     limit: int
     offset: int
+
+
+# ---- settings --------------------------------------------------------------
+class DefaultParams(BaseModel):
+    steps: int = Field(default=_L["steps"].default, ge=int(_L["steps"].min), le=int(_L["steps"].max))
+    cfg: float = Field(default=_L["cfg"].default, ge=_L["cfg"].min, le=_L["cfg"].max)
+    denoise: float = Field(default=_L["denoise"].default, ge=_L["denoise"].min, le=_L["denoise"].max)
+    resolution: int = Field(
+        default=_L["resolution"].default, ge=int(_L["resolution"].min), le=int(_L["resolution"].max)
+    )
+    seed_mode: Literal["random", "fixed"] = "random"
+
+    @model_validator(mode="after")
+    def _step_multiple(self):
+        step = int(_L["resolution"].step or 1)
+        if self.resolution % step:
+            raise ValueError(f"resolution 必须是 {step} 的倍数")
+        return self
+
+
+class SettingsOut(BaseModel):
+    theme: Literal["light", "dark", "system"] = "system"
+    default_params: DefaultParams = Field(default_factory=DefaultParams)
+
+
+class SettingsUpdate(BaseModel):
+    theme: Literal["light", "dark", "system"] | None = None
+    default_params: DefaultParams | None = None

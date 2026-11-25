@@ -19,6 +19,7 @@ export interface Upload {
   height: number
   created_at: string
   url: string
+  thumbnail_url: string
 }
 
 export interface ImageAsset {
@@ -98,6 +99,21 @@ export interface GenerationCreate {
   resolution: number
 }
 
+export type ThemeSetting = 'light' | 'dark' | 'system'
+
+export interface DefaultParams {
+  steps: number
+  cfg: number
+  denoise: number
+  resolution: number
+  seed_mode: 'random' | 'fixed'
+}
+
+export interface Settings {
+  theme: ThemeSetting
+  default_params: DefaultParams
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -163,6 +179,9 @@ export const api = {
     return request<Page<Generation>>(`/generations?${qs}`)
   },
   getGeneration: (id: string) => request<Generation>(`/generations/${id}`),
+  deleteGeneration: (id: string) => request<void>(`/generations/${id}`, { method: 'DELETE' }),
+  getSettings: () => request<Settings>('/settings'),
+  updateSettings: (patch: Partial<Settings>) => request<Settings>('/settings', json('PUT', patch)),
   cancelGeneration: (id: string) => request<Generation>(`/generations/${id}/cancel`, { method: 'POST' }),
   retryGeneration: (id: string, randomizeSeed = false) =>
     request<Generation>(`/generations/${id}/retry`, json('POST', { randomize_seed: randomizeSeed })),

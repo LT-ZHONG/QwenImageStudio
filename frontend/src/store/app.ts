@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Generation } from '@/lib/api'
+import type { DefaultParams, Generation } from '@/lib/api'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -22,12 +22,15 @@ interface AppState extends Draft {
   sidebarCollapsed: boolean
   uploadId: string | null
   activeTaskId: string | null
+  /** true once the server-side default params were copied into the draft (first run only) */
+  defaultsApplied: boolean
 
   setDraft: (patch: Partial<Draft>) => void
   setTheme: (t: ThemeMode) => void
   toggleSidebar: () => void
   setUploadId: (id: string | null) => void
   setActiveTaskId: (id: string | null) => void
+  applyDefaults: (d: DefaultParams) => void
   /** Copy a past task's prompt/params back into the creation form. */
   reuseParams: (g: Generation, opts?: { keepSeed?: boolean }) => void
 }
@@ -39,6 +42,7 @@ export const useApp = create<AppState>()(
       sidebarCollapsed: false,
       uploadId: null,
       activeTaskId: null,
+      defaultsApplied: false,
       prompt: DEFAULT_PROMPT,
       negativePrompt: '',
       seedMode: 'random',
@@ -53,6 +57,15 @@ export const useApp = create<AppState>()(
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setUploadId: (uploadId) => set({ uploadId }),
       setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
+      applyDefaults: (d) =>
+        set({
+          steps: d.steps,
+          cfg: d.cfg,
+          denoise: d.denoise,
+          resolution: d.resolution,
+          seedMode: d.seed_mode,
+          defaultsApplied: true,
+        }),
       reuseParams: (g, opts) =>
         set({
           prompt: g.prompt,

@@ -7,7 +7,7 @@ from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import assets, generations, system, uploads
+from app.api import assets, generations, settings as settings_api, system, uploads
 from app.config import BACKEND_DIR, Settings, get_settings
 from app.db import make_engine, make_session_factory
 from app.services.comfyui_client import ComfyUIClient
@@ -54,7 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"], allow_headers=["*"]
     )
-    for r in (system.router, uploads.router, generations.router, assets.router, generations.ws_router):
+    for r in (system.router, uploads.router, generations.router, assets.router, settings_api.router, generations.ws_router):
         app.include_router(r, prefix="/api/v1")
     return app
 

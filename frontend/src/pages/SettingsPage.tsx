@@ -1,8 +1,12 @@
-import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useModels } from '@/components/create/SeedAndParams'
-import { api } from '@/lib/api'
+import { RESOLUTIONS_FOR, SliderRow, useModels } from '@/components/create/SeedAndParams'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useServerSettings } from '@/hooks/useServerSettings'
+import { api, type DefaultParams } from '@/lib/api'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useApp, type ThemeMode } from '@/store/app'
 
@@ -16,6 +20,24 @@ export default function SettingsPage() {
   const theme = useApp((s) => s.theme)
   const setTheme = useApp((s) => s.setTheme)
   const models = useModels().data
+  const qc = useQueryClient()
+  const server = useServerSettings().data
+  const [edited, setDefaults] = useState<DefaultParams | null>(null)
+  const defaults = edited ?? server?.default_params ?? null
+
+  const save = useMutation({
+    mutationFn: api.updateSettings,
+    onSuccess: (s) => {
+      qc.setQueryData(['settings'], s)
+      toast.success('设置已保存')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+  const changeTheme = (t: ThemeMode) => {
+    setTheme(t)
+    save.mutate({ theme: t })
+  }
+  const p = models?.params
 
   const test = useMutation({
     mutationFn: async () => {
@@ -63,7 +85,7 @@ export default function SettingsPage() {
           {THEMES.map((t) => (
             <button
               key={t.value}
-              onClick={() => setTheme(t.value)}
+              onClick={() => changeTheme(t.value)}
               className={cn(
                 'rounded-md px-4 py-1.5 text-sm',
                 theme === t.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
@@ -74,6 +96,50 @@ export default function SettingsPage() {
           ))}
         </div>
       </section>
+
+      {defaults && p && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-medium">默认生成参数</h2>
+            <p className="text-xs text-muted-foreground">保存在后端。首次打开创作页和点击「恢复默认」时使用。</p>
+          </div>
+          <SliderRow label="Steps" value={defaults.steps} spec={p.steps} step={1} onChange={(v) => setDefaults({ ...defaults, steps: v })} />
+          <SliderRow label="CFG" value={defaults.cfg} spec={p.cfg} step={0.1} onChange={(v) => setDefaults({ ...defaults, cfg: Math.round(v * 10) / 10 })} />
+          <SliderRow label="Denoise" value={defaults.denoise} spec={p.denoise} step={0.05} onChange={(v) => setDefaults({ ...defaults, denoise: Math.round(v * 100) / 100 })} />
+          <div className="flex items-center justify-between text-sm">
+            <span>Resolution</span>
+            <Select value={String(defaults.resolution)} onValueChange={(v) => v && setDefaults({ ...defaults, resolution: Number(v) })}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RESOLUTIONS_FOR(p.resolution).map((r) => (
+                  <SelectItem key={r} value={String(r)}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span>Seed 默认模式</span>
+            <div className="inline-flex rounded-lg border p-0.5">
+              {(['random', 'fixed'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setDefaults({ ...defaults, seed_mode: m })}
+                  className={cn('rounded-md px-3 py-1', defaults.seed_mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
+                >
+                  {m === 'random' ? '随机' : '固定'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Button onClick={() => save.mutate({ default_params: defaults })} disabled={save.isPending}>
+            保存默认参数
+          </Button>
+        </section>
+      )}
 
       {models && (
         <section className="space-y-3">

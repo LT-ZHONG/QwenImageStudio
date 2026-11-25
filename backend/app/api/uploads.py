@@ -1,3 +1,4 @@
+import asyncio
 import io
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
@@ -78,12 +79,21 @@ async def upload_file(upload_id: str, request: Request, s: AsyncSession = Depend
     return FileResponse(request.app.state.storage.resolve(u.storage_key), media_type=u.mime_type)
 
 
+@router.get("/{upload_id}/thumbnail")
+async def upload_thumbnail(upload_id: str, request: Request, s: AsyncSession = Depends(get_session)) -> FileResponse:
+    u = await _get(s, upload_id)
+    storage = request.app.state.storage
+    key = await asyncio.to_thread(storage.input_thumbnail, u.storage_key)
+    return FileResponse(storage.resolve(key), media_type="image/webp")
+
+
 @router.delete("/{upload_id}", status_code=204)
 async def delete_upload(upload_id: str, request: Request, s: AsyncSession = Depends(get_session)) -> None:
     u = await _get(s, upload_id)
     used = await s.scalar(select(func.count()).select_from(GenerationTask).where(GenerationTask.upload_id == u.id))
     if used:
         raise HTTPException(409, "该图片已被生成任务引用，无法删除")
-    request.app.state.storage.delete(u.storage_key)
+    storage = request.app.state.storage
+    storage.delete(u.storage_key, storage.input_thumbnail_key(u.storage_key))
     await s.delete(u)
     await s.commit()

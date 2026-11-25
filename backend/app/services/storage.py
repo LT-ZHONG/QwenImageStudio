@@ -45,6 +45,22 @@ class Storage:
         self._write(key, data)
         return key
 
+    @staticmethod
+    def input_thumbnail_key(input_key: str) -> str:
+        return f"thumbnails/input/{Path(input_key).stem}.webp"
+
+    def input_thumbnail(self, input_key: str) -> str:
+        """Return the key of the (lazily created, cached) thumbnail for an input image."""
+        key = self.input_thumbnail_key(input_key)
+        if not self.resolve(key).exists():
+            with Image.open(self.resolve(input_key)) as img:
+                thumb = ImageOps.exif_transpose(img).convert("RGB")
+                thumb.thumbnail((self.thumbnail_edge, self.thumbnail_edge))
+                buf = io.BytesIO()
+                thumb.save(buf, "WEBP", quality=82)
+            self._write(key, buf.getvalue())
+        return key
+
     def save_generated(self, data: bytes) -> dict:
         """Persist a generated image and its thumbnail; returns metadata."""
         with Image.open(io.BytesIO(data)) as img:

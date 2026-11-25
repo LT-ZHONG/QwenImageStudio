@@ -57,6 +57,27 @@ async def get_generation(task_id: str, s: AsyncSession = Depends(get_session)) -
     return task_out(await _get(s, task_id))
 
 
+@router.delete("/{task_id}", status_code=204)
+async def delete_generation(task_id: str, request: Request, s: AsyncSession = Depends(get_session)) -> None:
+    """Delete a finished task together with its result images (and its input if nothing else uses it)."""
+    task = await _get(s, task_id)
+    if task.status not in TERMINAL:
+        raise HTTPException(409, "任务仍在进行中，请先取消")
+    storage = request.app.state.storage
+    keys = [k for img in task.images for k in (img.storage_key, img.thumbnail_key)]
+    upload = task.upload
+    await s.delete(task)  # cascades to ImageAsset rows
+    await s.flush()
+    others = await s.scalar(
+        select(func.count()).select_from(GenerationTask).where(GenerationTask.upload_id == upload.id)
+    )
+    if not others:
+        keys += [upload.storage_key, storage.input_thumbnail_key(upload.storage_key)]
+        await s.delete(upload)
+    await s.commit()
+    storage.delete(*keys)  # files go only after the DB commit succeeded
+
+
 @router.post("/{task_id}/cancel", response_model=GenerationOut)
 async def cancel_generation(task_id: str, request: Request, s: AsyncSession = Depends(get_session)) -> GenerationOut:
     await _get(s, task_id)

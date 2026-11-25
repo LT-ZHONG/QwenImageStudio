@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useApplyTheme } from '@/hooks/useTheme'
+import { useSyncServerSettings } from '@/hooks/useServerSettings'
 import CreatePage from '@/pages/CreatePage'
 import HistoryPage from '@/pages/HistoryPage'
 import SettingsPage from '@/pages/SettingsPage'
@@ -12,11 +13,11 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
 })
 
-export default function App() {
+function Shell() {
   useApplyTheme()
+  useSyncServerSettings()
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <TooltipProvider>
         <BrowserRouter>
           <Routes>
             <Route element={<AppLayout />}>
@@ -27,7 +28,14 @@ export default function App() {
           </Routes>
         </BrowserRouter>
         <Toaster position="top-center" richColors />
-      </TooltipProvider>
+    </TooltipProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Shell />
     </QueryClientProvider>
   )
 }

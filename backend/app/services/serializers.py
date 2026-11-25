@@ -7,6 +7,7 @@ API = "/api/v1"
 def upload_out(u: UploadAsset) -> UploadOut:
     out = UploadOut.model_validate(u)
     out.url = f"{API}/uploads/{u.id}/file"
+    out.thumbnail_url = f"{API}/uploads/{u.id}/thumbnail"
     return out
 
 

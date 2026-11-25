@@ -1,4 +1,4 @@
-import { ChevronDown, Dices, History } from 'lucide-react'
+import { ChevronDown, Dices, History, RotateCcw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
+import { useServerSettings } from '@/hooks/useServerSettings'
 import { api, type ParamSpec } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
@@ -79,7 +80,7 @@ export function SeedControl({ disabled, lastSeed }: { disabled?: boolean; lastSe
   )
 }
 
-function SliderRow({
+export function SliderRow({
   label,
   value,
   spec,
@@ -112,20 +113,34 @@ function SliderRow({
   )
 }
 
+export const RESOLUTIONS_FOR = (res: ParamSpec | undefined) =>
+  RESOLUTION_PRESETS.filter(
+    (r) => res && r >= (res.min ?? 0) && r <= (res.max ?? Infinity) && r % (res.step ?? 1) === 0,
+  )
+
 export function AdvancedParams({ disabled }: { disabled?: boolean }) {
   const { steps, cfg, denoise, resolution, setDraft } = useApp()
   const params = useModels().data?.params
   const res = params?.resolution
-  const resolutions = RESOLUTION_PRESETS.filter(
-    (r) => res && r >= (res.min ?? 0) && r <= (res.max ?? Infinity) && r % (res.step ?? 1) === 0,
-  )
+  const resolutions = RESOLUTIONS_FOR(res)
+  const defaults = useServerSettings().data?.default_params
 
   return (
     <Collapsible>
-      <CollapsibleTrigger className="group flex items-center gap-1 text-sm font-medium">
-        <ChevronDown className="size-4 transition-transform group-data-[panel-open]:rotate-180" />
-        高级参数
-      </CollapsibleTrigger>
+      <div className="flex items-center justify-between">
+        <CollapsibleTrigger className="group flex items-center gap-1 text-sm font-medium">
+          <ChevronDown className="size-4 transition-transform group-data-[panel-open]:rotate-180" />
+          高级参数
+        </CollapsibleTrigger>
+        <Button
+          size="xs"
+          variant="ghost"
+          disabled={disabled || !defaults}
+          onClick={() => defaults && useApp.getState().applyDefaults(defaults)}
+        >
+          <RotateCcw /> 恢复默认
+        </Button>
+      </div>
       <CollapsibleContent>
         <div className="space-y-4 pt-3">
           <SliderRow label="Steps" value={steps} spec={params?.steps} step={1} disabled={disabled} onChange={(v) => setDraft({ steps: v })} />
