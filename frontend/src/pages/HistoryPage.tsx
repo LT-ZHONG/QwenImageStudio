@@ -57,16 +57,6 @@ export default function HistoryPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const retry = useMutation({
-    mutationFn: (t: Generation) => api.retryGeneration(t.id, false),
-    onSuccess: (g) => {
-      useApp.getState().setActiveTaskId(g.id)
-      qc.invalidateQueries({ queryKey: ['generations'] })
-      navigate('/')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
   const reuse = (t: Generation, keepSeed: boolean) => {
     const st = useApp.getState()
     st.reuseParams(t, { keepSeed })
@@ -152,7 +142,6 @@ export default function HistoryPage() {
         task={selected}
         onClose={() => setSelectedId(null)}
         onReuse={reuse}
-        onRetry={(t) => retry.mutate(t)}
         onDelete={setDeleting}
       />
       <DeleteConfirm

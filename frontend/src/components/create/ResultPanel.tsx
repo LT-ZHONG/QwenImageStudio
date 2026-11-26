@@ -14,7 +14,7 @@ function ProgressView({ task, onCancel }: { task: Generation; onCancel: () => vo
   const determinate = task.status === 'running' && task.progress > 0
   const pct = Math.round(task.progress * 100)
   const label =
-    task.status === 'running' && !determinate ? '生成中（加载模型 / 准备采样）' : STATUS_LABEL[task.status]
+    task.status === 'running' && !determinate ? '生成中' : STATUS_LABEL[task.status]
   return (
     <div className="mx-auto w-full max-w-xl space-y-4">
       <div className="relative overflow-hidden rounded-xl border bg-muted/30">
@@ -187,9 +187,6 @@ export function ResultPanel({
         </Button>
         <Button variant="outline" onClick={() => onRetry(true)}>
           <RotateCcw /> 换个 Seed 重新生成
-        </Button>
-        <Button variant="outline" onClick={() => onRetry(false)}>
-          <RotateCcw /> 相同参数重新生成
         </Button>
       </div>
       <Details task={task} />

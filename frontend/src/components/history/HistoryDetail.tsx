@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Download, Maximize2, RotateCcw, Trash2, Wand2 } from 'lucide-react'
+import { Copy, Download, Maximize2, Trash2, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CompareSlider } from '@/components/create/CompareSlider'
 import { PreviewDialog } from '@/components/create/PreviewDialog'
@@ -16,13 +16,11 @@ export function HistoryDetail({
   task,
   onClose,
   onReuse,
-  onRetry,
   onDelete,
 }: {
   task: Generation | null
   onClose: () => void
   onReuse: (t: Generation, keepSeed: boolean) => void
-  onRetry: (t: Generation) => void
   onDelete: (t: Generation) => void
 }) {
   const [view, setView] = useState<View>('result')
@@ -130,14 +128,9 @@ export function HistoryDetail({
                     仅复用提示词与设置
                   </Button>
                   {isTerminal(task.status) && (
-                    <>
-                      <Button size="sm" variant="outline" onClick={() => onRetry(task)}>
-                        <RotateCcw /> 再生成一次
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onDelete(task)}>
-                        <Trash2 /> 删除
-                      </Button>
-                    </>
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onDelete(task)}>
+                      <Trash2 /> 删除
+                    </Button>
                   )}
                 </div>
               </div>
