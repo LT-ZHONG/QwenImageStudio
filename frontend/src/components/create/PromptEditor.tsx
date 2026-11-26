@@ -12,8 +12,9 @@ const MAX_LEN = 4000
 const EXAMPLES = [
   '移除画面中的人物，保持背景环境、光照和构图自然一致。',
   '把背景替换成傍晚的海边，保持主体不变。',
-  'Remove the text and watermark from the image, keep everything else unchanged.',
+  '把左侧桌子上的咖啡杯换成一个青花瓷茶壶，保持桌面的木纹纹理、阴影和整体暖色调照明不变。',
   '将画面调整为黑白电影质感，保留原有构图。',
+  '把招牌上的“稻穗”两个字改成“过海”，保持原有的字体风格、颜色、透视效果以及光照阴影不变，高清印刷质感。',
 ]
 
 export function PromptEditor({ disabled }: { disabled?: boolean }) {
