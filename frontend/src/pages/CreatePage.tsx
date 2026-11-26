@@ -61,8 +61,8 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="flex h-full flex-col lg:flex-row">
-      <section className="w-full shrink-0 space-y-6 overflow-y-auto border-b p-4 lg:w-[26rem] lg:border-r lg:border-b-0 lg:p-5">
+    <div className="flex flex-col lg:h-full lg:flex-row">
+      <section className="w-full shrink-0 space-y-6 border-b p-4 lg:w-[26rem] lg:overflow-y-auto lg:border-r lg:border-b-0 lg:p-5">
         <ImageUploader disabled={busy} />
         <PromptEditor disabled={busy} />
         <SeedControl disabled={busy} lastSeed={task?.generation_params.seed} />
@@ -76,7 +76,7 @@ export default function CreatePage() {
         </div>
       </section>
 
-      <section className="min-w-0 flex-1 overflow-y-auto p-4 lg:p-6">
+      <section className="min-w-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:flex-1 lg:overflow-y-auto lg:p-6">
         <ResultPanel
           task={task}
           loading={isLoading && !!app.activeTaskId}
