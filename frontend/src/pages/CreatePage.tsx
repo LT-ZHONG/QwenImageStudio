@@ -47,7 +47,7 @@ export default function CreatePage() {
 
   const generate = useMutation({ mutationFn: () => api.createGeneration(draft), onSuccess: onCreated, onError })
   const retry = useMutation({
-    mutationFn: (randomize: boolean) => api.retryGeneration(app.activeTaskId!, randomize),
+    mutationFn: () => api.retryGeneration(app.activeTaskId!),
     onSuccess: onCreated,
     onError,
   })
@@ -84,13 +84,7 @@ export default function CreatePage() {
           task={task}
           loading={isLoading && !!app.activeTaskId}
           onCancel={() => cancel.mutate()}
-          onRetry={(randomize) => retry.mutate(randomize)}
-          onReuse={(keepSeed) => {
-            if (!task) return
-            app.reuseParams(task, { keepSeed })
-            app.setUploadId(task.upload_id)
-            toast.success('已将参数填入左侧表单')
-          }}
+          onRetry={() => retry.mutate()}
         />
       </section>
     </div>

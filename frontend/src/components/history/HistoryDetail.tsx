@@ -20,7 +20,7 @@ export function HistoryDetail({
 }: {
   task: Generation | null
   onClose: () => void
-  onReuse: (t: Generation, keepSeed: boolean) => void
+  onReuse: (t: Generation) => void
   onDelete: (t: Generation) => void
 }) {
   const [view, setView] = useState<View>('result')
@@ -121,11 +121,8 @@ export function HistoryDetail({
                   ))}
                 </dl>
                 <div className="flex flex-wrap gap-2 border-t pt-4">
-                  <Button size="sm" onClick={() => onReuse(task, true)}>
+                  <Button size="sm" onClick={() => onReuse(task)}>
                     <Wand2 /> 复用参数
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => onReuse(task, false)}>
-                    仅复用提示词与设置
                   </Button>
                   {isTerminal(task.status) && (
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onDelete(task)}>

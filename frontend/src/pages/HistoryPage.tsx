@@ -57,9 +57,9 @@ export default function HistoryPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const reuse = (t: Generation, keepSeed: boolean) => {
+  const reuse = (t: Generation) => {
     const st = useApp.getState()
-    st.reuseParams(t, { keepSeed })
+    st.reuseParams(t, { keepSeed: true })
     st.setUploadId(t.upload_id)
     toast.success('参数已填入创作页')
     navigate('/')

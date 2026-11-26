@@ -190,8 +190,7 @@ export const api = {
   getSettings: () => request<Settings>('/settings'),
   updateSettings: (patch: Partial<Settings>) => request<Settings>('/settings', json('PUT', patch)),
   cancelGeneration: (id: string) => request<Generation>(`/generations/${id}/cancel`, { method: 'POST' }),
-  retryGeneration: (id: string, randomizeSeed = false) =>
-    request<Generation>(`/generations/${id}/retry`, json('POST', { randomize_seed: randomizeSeed })),
+  retryGeneration: (id: string) => request<Generation>(`/generations/${id}/retry`, json('POST', {})),
 }
 
 export function generationWsUrl(taskId: string): string {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, ChevronDown, Columns2, Copy, Download, Loader2, Maximize2, RotateCcw, Sparkles, Square, Wand2 } from 'lucide-react'
+import { AlertCircle, ChevronDown, Columns2, Copy, Download, Loader2, Maximize2, RotateCcw, Sparkles, Square } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -98,13 +98,11 @@ export function ResultPanel({
   loading,
   onCancel,
   onRetry,
-  onReuse,
 }: {
   task: Generation | undefined
   loading: boolean
   onCancel: () => void
-  onRetry: (randomizeSeed: boolean) => void
-  onReuse: (keepSeed: boolean) => void
+  onRetry: () => void
 }) {
   const [preview, setPreview] = useState<ImageAsset | null>(null)
   const [compare, setCompare] = useState(false)
@@ -134,7 +132,7 @@ export function ResultPanel({
         <AlertCircle className={cn('size-10', failed ? 'text-destructive' : 'text-muted-foreground')} />
         <p className="text-lg font-medium">{failed ? '生成失败' : '任务已取消'}</p>
         {task.error_message && <p className="text-sm break-words text-muted-foreground">{task.error_message}</p>}
-        <Button onClick={() => onRetry(false)}>
+        <Button onClick={onRetry}>
           <RotateCcw /> 重试
         </Button>
       </div>
@@ -181,14 +179,6 @@ export function ResultPanel({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => onReuse(true)}>
-          <Wand2 /> 复用参数（含 Seed）
-        </Button>
-        <Button variant="outline" onClick={() => onRetry(true)}>
-          <RotateCcw /> 换个 Seed 重新生成
-        </Button>
-      </div>
       <Details task={task} />
 
       <PreviewDialog task={task} image={preview} onClose={() => setPreview(null)} />
