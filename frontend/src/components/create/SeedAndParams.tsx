@@ -75,7 +75,6 @@ export function SeedControl({ disabled, lastSeed }: { disabled?: boolean; lastSe
           </>
         )}
       </div>
-      {seedMode === 'random' && <p className="text-xs text-muted-foreground">提交时由后端生成实际 Seed，并记录在任务参数中。</p>}
     </div>
   )
 }

@@ -122,6 +122,12 @@ class GenerationOut(ORM):
     images: list[ImageAssetOut]
 
 
+class QueueStatus(BaseModel):
+    waiting: int  # queued, not yet sent to ComfyUI
+    running: int  # submitting / running / cancelling
+    limit: int
+
+
 class Page[T](BaseModel):
     items: list[T]
     total: int

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
 from app.models import GenerationTask, UploadAsset
-from app.schemas import TERMINAL, GenerationCreate, GenerationOut, Page, RetryRequest, TaskStatus
+from app.schemas import TERMINAL, GenerationCreate, GenerationOut, Page, QueueStatus, RetryRequest, TaskStatus
 from app.services.serializers import task_out
 from app.services.task_manager import QueueFullError
 
@@ -54,6 +54,22 @@ async def list_generations(
         )
     ).unique()
     return Page(items=[task_out(t) for t in rows], total=total or 0, limit=limit, offset=offset)
+
+
+@router.get("/queue", response_model=QueueStatus)  # declared before /{task_id}
+async def queue_status(request: Request, s: AsyncSession = Depends(get_session)) -> QueueStatus:
+    rows = dict(
+        (await s.execute(
+            select(GenerationTask.status, func.count())
+            .where(GenerationTask.status.in_(["queued", "submitting", "running", "cancelling"]))
+            .group_by(GenerationTask.status)
+        )).all()
+    )
+    return QueueStatus(
+        waiting=rows.get("queued", 0),
+        running=sum(rows.get(k, 0) for k in ("submitting", "running", "cancelling")),
+        limit=request.app.state.tasks.max_active,
+    )
 
 
 @router.get("/{task_id}", response_model=GenerationOut)

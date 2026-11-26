@@ -114,6 +114,12 @@ export interface Settings {
   default_params: DefaultParams
 }
 
+export interface QueueStatus {
+  waiting: number
+  running: number
+  limit: number
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -178,6 +184,7 @@ export const api = {
     Object.entries(params).forEach(([k, v]) => v !== undefined && v !== '' && qs.set(k, String(v)))
     return request<Page<Generation>>(`/generations?${qs}`)
   },
+  queueStatus: () => request<QueueStatus>('/generations/queue'),
   getGeneration: (id: string) => request<Generation>(`/generations/${id}`),
   deleteGeneration: (id: string) => request<void>(`/generations/${id}`, { method: 'DELETE' }),
   getSettings: () => request<Settings>('/settings'),

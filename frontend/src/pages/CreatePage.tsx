@@ -7,6 +7,7 @@ import { PromptEditor } from '@/components/create/PromptEditor'
 import { ResultPanel } from '@/components/create/ResultPanel'
 import { AdvancedParams, SeedControl, useModels } from '@/components/create/SeedAndParams'
 import { validateDraft } from '@/components/create/validate'
+import { QueueNotice } from '@/components/create/QueueNotice'
 import { Button } from '@/components/ui/button'
 import { api, isTerminal, type GenerationCreate } from '@/lib/api'
 import { useGeneration } from '@/hooks/useGeneration'
@@ -40,6 +41,7 @@ export default function CreatePage() {
   const onCreated = (g: { id: string }) => {
     app.setActiveTaskId(g.id)
     qc.invalidateQueries({ queryKey: ['generations'] })
+    qc.invalidateQueries({ queryKey: ['queue-status'] })
   }
   const onError = (e: Error) => toast.error(e.message)
 
@@ -72,6 +74,7 @@ export default function CreatePage() {
             {generate.isPending || busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
             {busy ? '生成中…' : '生成图片'}
           </Button>
+          <QueueNotice />
           {problem && !busy && <p className="text-center text-xs text-muted-foreground">{problem}</p>}
         </div>
       </section>

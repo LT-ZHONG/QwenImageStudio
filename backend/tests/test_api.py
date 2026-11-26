@@ -175,3 +175,14 @@ async def test_queue_limit_returns_429_and_frees_up(tmp_path, monkeypatch):
             n = (await c.get("/generations")).json()["total"]
             assert (await c.post("/generations", json=body)).status_code == 429
             assert (await c.get("/generations")).json()["total"] == n  # rejected request left no row
+
+
+async def test_queue_status_counts(ctx):
+    c, app = ctx
+    assert (await c.get("/generations/queue")).json() == {"waiting": 0, "running": 0, "limit": 5}
+    app.state.comfy.block.clear()
+    up = await upload(c)
+    for _ in range(3):
+        await c.post("/generations", json={"upload_id": up["id"], "prompt": "x"})
+    await asyncio.sleep(0.3)
+    assert (await c.get("/generations/queue")).json() == {"waiting": 2, "running": 1, "limit": 5}
