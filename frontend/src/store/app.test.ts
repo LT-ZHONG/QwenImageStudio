@@ -35,4 +35,16 @@ describe('app store', () => {
     const s = useApp.getState()
     expect([s.steps, s.cfg, s.denoise, s.resolution, s.seedMode, s.defaultsApplied]).toEqual([20, 1.5, 0.9, 1280, 'fixed', true])
   })
+
+  it('tracks the clean original behind a marked upload', async () => {
+    const { useApp } = await import('./app')
+    useApp.getState().setUploadId('orig')
+    useApp.getState().setMarkedUpload('marked1', 'orig')
+    expect([useApp.getState().uploadId, useApp.getState().originalUploadId]).toEqual(['marked1', 'orig'])
+    useApp.getState().clearMarks()
+    expect([useApp.getState().uploadId, useApp.getState().originalUploadId]).toEqual(['orig', null])
+    useApp.getState().setMarkedUpload('marked2', 'orig')
+    useApp.getState().setUploadId('another') // choosing a different image drops the link
+    expect(useApp.getState().originalUploadId).toBeNull()
+  })
 })

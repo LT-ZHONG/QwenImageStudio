@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ImagePlus, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { Brush, Eraser, ImagePlus, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { MaskEditor } from './MaskEditor'
 import { useApp } from '@/store/app'
 
 // Keep in sync with backend limits (backend/app/config.py)
@@ -46,7 +47,9 @@ async function validate(file: File): Promise<string | null> {
 export function ImageUploader({ disabled }: { disabled?: boolean }) {
   const qc = useQueryClient()
   const uploadId = useApp((s) => s.uploadId)
+  const originalId = useApp((s) => s.originalUploadId)
   const setUploadId = useApp((s) => s.setUploadId)
+  const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<string | null>(null) // local preview while uploading
   const [dragging, setDragging] = useState(false)
@@ -77,9 +80,9 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
       try {
         const u = await api.uploadImage(file)
         qc.setQueryData(['upload', u.id], u)
-        const prev = useApp.getState().uploadId
+        const { uploadId: prev, originalUploadId: prevOrig } = useApp.getState()
         setUploadId(u.id)
-        if (prev) api.deleteUpload(prev).catch(() => undefined) // 409 if already used by a task — fine
+        for (const old of [prev, prevOrig]) if (old) api.deleteUpload(old).catch(() => undefined) // 409 if used by a task — fine
       } catch (e) {
         toast.error(`上传失败：${(e as Error).message}`)
       } finally {
@@ -104,8 +107,39 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
   }, [handleFile])
 
   const remove = () => {
-    if (uploadId) api.deleteUpload(uploadId).catch(() => undefined)
+    for (const id of [uploadId, originalId]) if (id) api.deleteUpload(id).catch(() => undefined)
     setUploadId(null)
+  }
+
+  // The editor always starts from the clean original so marks never stack on old marks.
+  const { data: original } = useQuery({
+    queryKey: ['upload', originalId],
+    queryFn: () => api.getUpload(originalId!),
+    enabled: !!originalId,
+    staleTime: Infinity,
+  })
+  const editSource = originalId ? original?.url : upload?.url
+
+  const saveMarks = useCallback(
+    async (blob: Blob, name: string) => {
+      const file = new File([blob], name, { type: blob.type })
+      if (file.size > MAX_BYTES) throw new Error(`标记后的图片 ${formatBytes(file.size)} 超过大小限制`)
+      const marked = await api.uploadImage(file)
+      qc.setQueryData(['upload', marked.id], marked)
+      const st = useApp.getState()
+      const cleanId = st.originalUploadId ?? st.uploadId!
+      if (st.originalUploadId && st.uploadId) api.deleteUpload(st.uploadId).catch(() => undefined) // previous marked copy
+      st.setMarkedUpload(marked.id, cleanId)
+      setEditing(false)
+      toast.success('已标记。请在提示词里写明“红色遮罩区域”要怎么改')
+    },
+    [qc],
+  )
+
+  const clearMarks = () => {
+    const st = useApp.getState()
+    if (st.originalUploadId && st.uploadId) api.deleteUpload(st.uploadId).catch(() => undefined)
+    st.clearMarks()
   }
 
   const src = pending ?? upload?.url
@@ -133,12 +167,21 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
-            <span className="min-w-0 flex-1 truncate">
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-1 border-t px-3 py-2 text-xs text-muted-foreground">
+            <span className="min-w-0 basis-full truncate">
               {upload && !uploading
                 ? `${upload.original_name} · ${upload.width}×${upload.height} · ${formatBytes(upload.size_bytes)}`
                 : '上传中…'}
+              {originalId && !uploading && <span className="ml-2 rounded bg-red-500/15 px-1.5 py-0.5 text-red-600 dark:text-red-400">已标记</span>}
             </span>
+            <Button size="xs" variant="ghost" disabled={disabled || uploading || !editSource} onClick={() => setEditing(true)}>
+              <Brush /> {originalId ? '重新标记' : '涂抹标记'}
+            </Button>
+            {originalId && (
+              <Button size="xs" variant="ghost" disabled={disabled || uploading} onClick={clearMarks}>
+                <Eraser /> 清除标记
+              </Button>
+            )}
             <Button size="xs" variant="ghost" disabled={disabled || uploading} onClick={() => inputRef.current?.click()}>
               <RefreshCw /> 替换
             </Button>
@@ -171,6 +214,15 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
           <span className="text-sm font-medium text-foreground">点击、拖拽或粘贴图片</span>
           <span className="text-xs">PNG / JPG / WEBP · 最大 {formatBytes(MAX_BYTES)} · {MIN_EDGE}–{MAX_EDGE}px</span>
         </button>
+      )}
+      {editing && (
+        <MaskEditor
+        open
+        imageUrl={editSource ?? null}
+        maxBytes={MAX_BYTES}
+        onCancel={() => setEditing(false)}
+        onSave={saveMarks}
+      />
       )}
     </div>
   )

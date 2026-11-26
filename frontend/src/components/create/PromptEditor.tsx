@@ -9,6 +9,11 @@ import { api } from '@/lib/api'
 import { useApp } from '@/store/app'
 
 const MAX_LEN = 4000
+const MARK_TEMPLATES = [
+  ['替换', '将红色遮罩区域内的内容替换成……，红色遮罩之外的内容保持不变。'],
+  ['移除', '移除红色遮罩区域内的内容，用周围环境自然补全，红色遮罩之外的内容保持不变。'],
+  ['修改', '将红色遮罩区域内的……修改为……，红色遮罩之外的内容保持不变。'],
+] as const
 const EXAMPLES = [
   '移除画面中的人物，保持背景环境、光照和构图自然一致。',
   '把背景替换成傍晚的海边，保持主体不变。',
@@ -21,6 +26,7 @@ export function PromptEditor({ disabled }: { disabled?: boolean }) {
   const prompt = useApp((s) => s.prompt)
   const negative = useApp((s) => s.negativePrompt)
   const setDraft = useApp((s) => s.setDraft)
+  const marked = useApp((s) => !!s.originalUploadId)
   const [showHistory, setShowHistory] = useState(false)
 
   const history = useQuery({
@@ -73,6 +79,23 @@ export function PromptEditor({ disabled }: { disabled?: boolean }) {
               {p}
             </button>
           ))}
+        </div>
+      )}
+
+      {marked && (
+        <div className="space-y-1.5 rounded-lg border border-red-500/30 bg-red-500/5 p-2 text-xs">
+          <p className="text-muted-foreground">
+            图片已标记。提示词里请写明“红色遮罩区域”要怎么改，红色笔迹会被模型当作修改范围。
+            {!prompt.includes('红色') && <span className="ml-1 text-red-600 dark:text-red-400">当前提示词没有提到红色区域。</span>}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {MARK_TEMPLATES.map(([label, text]) => (
+              <button key={label} disabled={disabled} onClick={() => setDraft({ prompt: text })}
+                className="rounded-full border px-2.5 py-0.5 hover:bg-muted disabled:opacity-50" title={text}>
+                {label}模板
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

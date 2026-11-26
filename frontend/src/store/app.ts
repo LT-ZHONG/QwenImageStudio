@@ -21,6 +21,8 @@ interface AppState extends Draft {
   theme: ThemeMode
   sidebarCollapsed: boolean
   uploadId: string | null
+  /** When uploadId is a marked-up copy, the clean original it was made from (for re-editing / clearing marks). */
+  originalUploadId: string | null
   activeTaskId: string | null
   /** true once the server-side default params were copied into the draft (first run only) */
   defaultsApplied: boolean
@@ -29,6 +31,8 @@ interface AppState extends Draft {
   setTheme: (t: ThemeMode) => void
   toggleSidebar: () => void
   setUploadId: (id: string | null) => void
+  setMarkedUpload: (markedId: string, originalId: string) => void
+  clearMarks: () => void
   setActiveTaskId: (id: string | null) => void
   applyDefaults: (d: DefaultParams) => void
   /** Copy a past task's prompt/params back into the creation form. */
@@ -41,6 +45,7 @@ export const useApp = create<AppState>()(
       theme: 'system',
       sidebarCollapsed: false,
       uploadId: null,
+      originalUploadId: null,
       activeTaskId: null,
       defaultsApplied: false,
       prompt: DEFAULT_PROMPT,
@@ -55,7 +60,9 @@ export const useApp = create<AppState>()(
       setDraft: (patch) => set(patch),
       setTheme: (theme) => set({ theme }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      setUploadId: (uploadId) => set({ uploadId }),
+      setUploadId: (uploadId) => set({ uploadId, originalUploadId: null }),
+      setMarkedUpload: (uploadId, originalUploadId) => set({ uploadId, originalUploadId }),
+      clearMarks: () => set((s) => ({ uploadId: s.originalUploadId ?? s.uploadId, originalUploadId: null })),
       setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
       applyDefaults: (d) =>
         set({
