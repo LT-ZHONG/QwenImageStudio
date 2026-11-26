@@ -65,6 +65,7 @@ deploy/smoke.sh                   # 部署后检查
 | `QIS_STORAGE_DIR` | `backend/storage` | 数据库、图片、日志位置 |
 | `QIS_BACKUP_DIR` / `QIS_BACKUP_KEEP` | `backend/backups` / `14` | 备份目录与保留份数 |
 | `QIS_MAX_UPLOAD_BYTES` | `20971520` | 上传大小上限（前端校验值需同步修改） |
+| `QIS_MAX_ACTIVE_TASKS` | `5` | 同时排队+运行的任务上限，超出返回 429 |
 | `QIS_ORPHAN_UPLOAD_HOURS` | `24` | 未被任何任务使用的上传图片的保留时间 |
 | `QIS_LOG_LEVEL` | `INFO` | 日志级别 |
 

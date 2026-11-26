@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     storage_dir: Path = BACKEND_DIR / "storage"
     database_path: Path | None = None  # default: <storage_dir>/qwen_studio.db
     mapping_file: Path = BACKEND_DIR / "workflow_mapping.json"
+    max_active_tasks: int = 5  # queued + running tasks allowed at once; more are rejected with 429
     max_upload_bytes: int = 20 * 1024 * 1024
     max_image_edge: int = 4096
     min_image_edge: int = 64

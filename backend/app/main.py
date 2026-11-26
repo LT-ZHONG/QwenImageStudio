@@ -48,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         hub = EventHub()
         workflows = WorkflowManager(settings.mapping_file)
-        tasks = TaskManager(sf, comfy, workflows, storage, hub, settings.task_timeout)
+        tasks = TaskManager(sf, comfy, workflows, storage, hub, settings.task_timeout, settings.max_active_tasks)
         for name, value in dict(
             settings=settings, storage=storage, session_factory=sf, comfy=comfy,
             hub=hub, workflows=workflows, tasks=tasks,

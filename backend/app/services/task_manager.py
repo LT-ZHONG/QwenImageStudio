@@ -4,7 +4,7 @@ import logging
 import secrets
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import GenerationTask, ImageAsset
@@ -23,6 +23,12 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+class QueueFullError(Exception):
+    def __init__(self, limit: int):
+        super().__init__(f"当前排队任务已达上限（{limit} 个），请等待部分任务完成后再试")
+        self.limit = limit
+
+
 class TaskManager:
     def __init__(
         self,
@@ -32,7 +38,10 @@ class TaskManager:
         storage: Storage,
         hub: EventHub,
         task_timeout: float = 3600.0,
+        max_active: int = 5,
     ):
+        self.max_active = max_active
+        self._create_lock = asyncio.Lock()
         self.sf = session_factory
         self.client = client
         self.wm = workflows
@@ -76,6 +85,17 @@ class TaskManager:
 
     # ---- public ----------------------------------------------------------
     async def create(self, s: AsyncSession, req: GenerationCreate, upload_id: str) -> GenerationTask:
+        async with self._create_lock:  # make the count-then-insert atomic
+            active = await s.scalar(
+                select(func.count())
+                .select_from(GenerationTask)
+                .where(GenerationTask.status.in_(["queued", "submitting", "running", "cancelling"]))
+            )
+            if (active or 0) >= self.max_active:
+                raise QueueFullError(self.max_active)
+            return await self._insert(s, req, upload_id)
+
+    async def _insert(self, s: AsyncSession, req: GenerationCreate, upload_id: str) -> GenerationTask:
         seed_mode = "fixed" if req.seed is not None else "random"
         seed = req.seed if req.seed is not None else secrets.randbelow(SEED_MAX + 1)
         task = GenerationTask(

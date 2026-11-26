@@ -8,6 +8,7 @@ from app.api.deps import get_session
 from app.models import GenerationTask, UploadAsset
 from app.schemas import TERMINAL, GenerationCreate, GenerationOut, Page, RetryRequest, TaskStatus
 from app.services.serializers import task_out
+from app.services.task_manager import QueueFullError
 
 router = APIRouter(prefix="/generations", tags=["generations"])
 ws_router = APIRouter(tags=["realtime"])
@@ -26,7 +27,10 @@ async def create_generation(
 ) -> GenerationOut:
     if await s.get(UploadAsset, body.upload_id) is None:
         raise HTTPException(404, "upload_id 不存在")
-    task = await request.app.state.tasks.create(s, body, body.upload_id)
+    try:
+        task = await request.app.state.tasks.create(s, body, body.upload_id)
+    except QueueFullError as e:
+        raise HTTPException(429, str(e), headers={"Retry-After": "30"}) from e
     return task_out(task)
 
 
@@ -104,7 +108,10 @@ async def retry_generation(
         denoise=p["denoise"],
         resolution=p["resolution"],
     )
-    return task_out(await request.app.state.tasks.create(s, req, old.upload_id))
+    try:
+        return task_out(await request.app.state.tasks.create(s, req, old.upload_id))
+    except QueueFullError as e:
+        raise HTTPException(429, str(e), headers={"Retry-After": "30"}) from e
 
 
 @ws_router.websocket("/ws/generations/{task_id}")

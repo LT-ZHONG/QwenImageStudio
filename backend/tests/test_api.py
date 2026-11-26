@@ -149,3 +149,29 @@ async def test_settings_roundtrip_and_validation(ctx):
     assert got["theme"] == "dark" and got["default_params"]["steps"] == 30
     assert (await c.put("/settings", json={"theme": "light"})).json()["default_params"]["steps"] == 30  # partial update
     assert (await c.put("/settings", json={"default_params": {"steps": 999}})).status_code == 422
+
+
+async def test_queue_limit_returns_429_and_frees_up(tmp_path, monkeypatch):
+    monkeypatch.setattr(app_main, "ComfyUIClient", FakeComfy)
+    app = app_main.create_app(Settings(storage_dir=tmp_path / "storage", max_active_tasks=2))
+    async with app.router.lifespan_context(app):
+        app.state.comfy.block.clear()
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t/api/v1") as c:
+            up = await upload(c)
+            body = {"upload_id": up["id"], "prompt": "x"}
+            ids = [(await c.post("/generations", json=body)).json()["id"] for _ in range(2)]
+            r = await c.post("/generations", json=body)
+            assert r.status_code == 429 and r.headers["retry-after"] == "30" and "上限" in r.json()["detail"]
+            await asyncio.sleep(0.2)
+            await c.post(f"/generations/{ids[0]}/cancel")
+            await finish(c, ids[0], "cancelled")
+            app.state.comfy.block.clear()  # the fake's cancel releases every waiter; hold new ones again
+            app.state.comfy.cancelled = False
+            await asyncio.sleep(0.3)
+            assert (await c.post("/generations", json=body)).status_code == 202  # slot freed
+            while (await c.post("/generations", json=body)).status_code == 202:
+                pass  # fill every remaining slot
+            assert (await c.post(f"/generations/{ids[0]}/retry")).status_code == 429  # retry is limited too
+            n = (await c.get("/generations")).json()["total"]
+            assert (await c.post("/generations", json=body)).status_code == 429
+            assert (await c.get("/generations")).json()["total"] == n  # rejected request left no row

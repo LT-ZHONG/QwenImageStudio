@@ -33,7 +33,7 @@ function ProgressView({ task, onCancel }: { task: Generation; onCancel: () => vo
           )}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{determinate ? `采样进度 ${pct}%` : STATUS_LABEL[task.status]}</span>
+          <span>{determinate ? `进度 ${pct}%` : STATUS_LABEL[task.status]}</span>
           <Button size="xs" variant="outline" disabled={task.status === 'cancelling'} onClick={onCancel}>
             <Square /> {task.status === 'cancelling' ? '取消中…' : '取消生成'}
           </Button>
