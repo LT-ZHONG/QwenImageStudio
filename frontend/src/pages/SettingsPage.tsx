@@ -69,7 +69,6 @@ export default function SettingsPage() {
             </li>
           </ul>
         )}
-        <p className="text-xs text-muted-foreground">ComfyUI 地址由后端配置管理，此处不可修改。</p>
       </section>
 
       <section className="space-y-3">
@@ -103,7 +102,6 @@ export default function SettingsPage() {
               </div>
             ))}
           </dl>
-          <p className="text-xs text-muted-foreground">模型文件由 ComfyUI Workflow 管理。</p>
         </section>
       )}
     </div>

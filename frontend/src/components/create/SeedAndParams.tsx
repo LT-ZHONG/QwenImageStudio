@@ -164,7 +164,6 @@ export function AdvancedParams({ disabled }: { disabled?: boolean }) {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-xs text-muted-foreground">取值范围由后端根据 Workflow 配置提供，超出范围的请求会被拒绝。</p>
         </div>
       </CollapsibleContent>
     </Collapsible>
