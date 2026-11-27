@@ -75,6 +75,7 @@ export default function CreatePage() {
             {busy ? '生成中…' : '生成图片'}
           </Button>
           <QueueNotice />
+          <p className="text-center text-xs text-muted-foreground">AI 生图具有一定的随机性，并不能保证每次运行都严格按照要求出图</p>
           {problem && !busy && <p className="text-center text-xs text-muted-foreground">{problem}</p>}
         </div>
       </section>
