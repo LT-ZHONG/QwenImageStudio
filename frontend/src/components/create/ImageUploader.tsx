@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
+import { maskAreaLabel } from '@/lib/paint'
 import { cn } from '@/lib/utils'
 import { MaskEditor } from './MaskEditor'
 import { useApp } from '@/store/app'
@@ -121,7 +122,7 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
   const editSource = originalId ? original?.url : upload?.url
 
   const saveMarks = useCallback(
-    async (blob: Blob, name: string) => {
+    async (blob: Blob, name: string, colors: string[]) => {
       const file = new File([blob], name, { type: blob.type })
       if (file.size > MAX_BYTES) throw new Error(`标记后的图片 ${formatBytes(file.size)} 超过大小限制`)
       const marked = await api.uploadImage(file)
@@ -129,9 +130,9 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
       const st = useApp.getState()
       const cleanId = st.originalUploadId ?? st.uploadId!
       if (st.originalUploadId && st.uploadId) api.deleteUpload(st.uploadId).catch(() => undefined) // previous marked copy
-      st.setMarkedUpload(marked.id, cleanId)
+      st.setMarkedUpload(marked.id, cleanId, colors)
       setEditing(false)
-      toast.success('已标记。请在提示词里写明“红色遮罩区域”要怎么改')
+      toast.success(`已标记。请在提示词里写明“${maskAreaLabel(colors)}”要怎么改`)
     },
     [qc],
   )

@@ -23,6 +23,8 @@ interface AppState extends Draft {
   uploadId: string | null
   /** When uploadId is a marked-up copy, the clean original it was made from (for re-editing / clearing marks). */
   originalUploadId: string | null
+  /** Colour names used by the marks on the current marked upload (for prompt wording). */
+  markColors: string[]
   activeTaskId: string | null
   /** true once the server-side default params were copied into the draft (first run only) */
   defaultsApplied: boolean
@@ -31,7 +33,7 @@ interface AppState extends Draft {
   setTheme: (t: ThemeMode) => void
   toggleSidebar: () => void
   setUploadId: (id: string | null) => void
-  setMarkedUpload: (markedId: string, originalId: string) => void
+  setMarkedUpload: (markedId: string, originalId: string, colors?: string[]) => void
   clearMarks: () => void
   setActiveTaskId: (id: string | null) => void
   applyDefaults: (d: DefaultParams) => void
@@ -46,6 +48,7 @@ export const useApp = create<AppState>()(
       sidebarCollapsed: false,
       uploadId: null,
       originalUploadId: null,
+      markColors: ['红色'],
       activeTaskId: null,
       defaultsApplied: false,
       prompt: DEFAULT_PROMPT,
@@ -61,7 +64,8 @@ export const useApp = create<AppState>()(
       setTheme: (theme) => set({ theme }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setUploadId: (uploadId) => set({ uploadId, originalUploadId: null }),
-      setMarkedUpload: (uploadId, originalUploadId) => set({ uploadId, originalUploadId }),
+      setMarkedUpload: (uploadId, originalUploadId, colors) =>
+        set({ uploadId, originalUploadId, markColors: colors?.length ? colors : ['红色'] }),
       clearMarks: () => set((s) => ({ uploadId: s.originalUploadId ?? s.uploadId, originalUploadId: null })),
       setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
       applyDefaults: (d) =>

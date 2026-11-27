@@ -1,5 +1,43 @@
 /** Mark colour/opacity mirror what ComfyUI's MaskEditor "Paint Pen" produces: RGB(255,0,0) at ~60 %. */
 export const MARK_COLOR = '#ff0000'
+
+export interface MarkColor {
+  name: string // used in prompts, e.g. “红色遮罩区域”
+  hex: string
+}
+export const MARK_COLORS: MarkColor[] = [
+  { name: '红色', hex: '#ff0000' },
+  { name: '橙色', hex: '#ff8000' },
+  { name: '黄色', hex: '#ffe600' },
+  { name: '绿色', hex: '#00d000' },
+  { name: '蓝色', hex: '#0050ff' },
+  { name: '紫色', hex: '#a020f0' },
+  { name: '白色', hex: '#ffffff' },
+  { name: '黑色', hex: '#000000' },
+]
+
+/** Names of the palette colours actually present in the paint layer (nearest-colour match, sampled). */
+export function usedColorNames(layer: HTMLCanvasElement): string[] {
+  const { data } = layer.getContext('2d')!.getImageData(0, 0, layer.width, layer.height)
+  const rgb = MARK_COLORS.map((c) => [1, 3, 5].map((i) => parseInt(c.hex.slice(i, i + 2), 16)))
+  const counts = new Array(MARK_COLORS.length).fill(0)
+  for (let i = 0; i < data.length; i += 16) {
+    if (data[i + 3] < 128) continue
+    let best = 0
+    let bestD = Infinity
+    rgb.forEach(([r, g, b], k) => {
+      const d = (data[i] - r) ** 2 + (data[i + 1] - g) ** 2 + (data[i + 2] - b) ** 2
+      if (d < bestD) [best, bestD] = [k, d]
+    })
+    counts[best]++
+  }
+  const total = counts.reduce((a, b) => a + b, 0)
+  const names = MARK_COLORS.filter((_, k) => counts[k] > Math.max(3, total * 0.01)).map((c) => c.name)
+  return names.length ? names : [MARK_COLORS[0].name]
+}
+
+/** “红色遮罩区域” / “红色和蓝色遮罩区域” */
+export const maskAreaLabel = (names: string[]) => `${names.join('和')}遮罩区域`
 export const MARK_OPACITY = 0.6 // default; the editor lets the user change it
 /** The model rescales references to ~resolution², so larger exports only cost upload size. */
 export const EXPORT_MAX_EDGE = 2048

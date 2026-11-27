@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
-import { exportPainted, fitSize, hasPaint, loadImage, MARK_COLOR, MARK_OPACITY } from '@/lib/paint'
+import { exportPainted, fitSize, hasPaint, loadImage, MARK_COLORS, MARK_OPACITY, usedColorNames } from '@/lib/paint'
 import { cn } from '@/lib/utils'
 
 const HISTORY_LIMIT = 20
@@ -20,7 +20,7 @@ export function MaskEditor({
   imageUrl: string | null
   maxBytes: number
   onCancel: () => void
-  onSave: (blob: Blob, filename: string) => Promise<void>
+  onSave: (blob: Blob, filename: string, colors: string[]) => Promise<void>
 }) {
   const baseRef = useRef<HTMLCanvasElement>(null)
   const paintRef = useRef<HTMLCanvasElement>(null)
@@ -36,6 +36,7 @@ export function MaskEditor({
   const [view, setView] = useState({ w: 1, h: 1 })
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush')
   const [opacityPct, setOpacityPct] = useState(Math.round(MARK_OPACITY * 100))
+  const [color, setColor] = useState(MARK_COLORS[0])
   const [brushPct, setBrushPct] = useState(4) // % of the image's long edge
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [saving, setSaving] = useState(false)
@@ -93,7 +94,7 @@ export function MaskEditor({
     const c = ctx()
     c.save()
     c.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over'
-    c.strokeStyle = c.fillStyle = MARK_COLOR // drawn opaque; the layer is shown/exported at MARK_OPACITY, so overlaps stay uniform
+    c.strokeStyle = c.fillStyle = color.hex // drawn opaque; the layer is shown/exported at MARK_OPACITY, so overlaps stay uniform
     c.lineWidth = brushPx
     c.lineCap = c.lineJoin = 'round'
     c.beginPath()
@@ -152,7 +153,7 @@ export function MaskEditor({
     setSaving(true)
     try {
       const { blob, name } = await exportPainted(imgRef.current, paintRef.current, maxBytes, opacityPct / 100)
-      await onSave(blob, name)
+      await onSave(blob, name, usedColorNames(paintRef.current))
     } catch (e) {
       toast.error(`保存失败：${(e as Error).message}`)
     } finally {
@@ -184,7 +185,7 @@ export function MaskEditor({
         className="fixed inset-0 top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 md:flex-row rounded-none border-0 bg-neutral-950 p-0 text-white sm:max-w-none"
       >
         <DialogTitle className="sr-only">局部重绘</DialogTitle>
-        <DialogDescription className="sr-only">用红色画笔标记需要修改的区域</DialogDescription>
+        <DialogDescription className="sr-only">用画笔标记需要修改的区域</DialogDescription>
 
         {/* Canvas first in the DOM: below the toolbar on phones (thumb reach), left of it on md+ */}
         <div ref={stageRef} className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
@@ -247,6 +248,33 @@ export function MaskEditor({
               </Button>
             </div>
 
+            <div className="col-span-2 space-y-1.5 md:col-span-1" title="标记颜色">
+              <div className="flex justify-between text-xs text-white/60">
+                <span>颜色</span>
+                <span>{color.name}</span>
+              </div>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="标记颜色">
+                {MARK_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    role="radio"
+                    aria-checked={color.hex === c.hex}
+                    aria-label={c.name}
+                    title={c.name}
+                    onClick={() => {
+                      setColor(c)
+                      setTool('brush')
+                    }}
+                    className={cn(
+                      'size-7 rounded-full border-2 transition-transform',
+                      color.hex === c.hex ? 'scale-110 border-white ring-2 ring-white/40' : 'border-white/30',
+                    )}
+                    style={{ backgroundColor: c.hex }}
+                  />
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1.5" title="画笔大小">
               <div className="flex justify-between text-xs text-white/60">
                 <span>大小</span>
@@ -265,8 +293,12 @@ export function MaskEditor({
             </div>
           </div>
 
+          <p className="text-xs leading-relaxed text-amber-300/90 md:mt-2">
+            遮罩颜色尽量和画面的颜色不同，例如画面中红色居多，那么遮罩颜色就不要用红色。
+          </p>
+
           <p className="hidden text-xs leading-relaxed text-white/50 md:mt-2 md:block">
-            用红色画笔涂抹需要修改的区域，然后在提示词里写明“红色遮罩区域”要怎么改。
+            用画笔涂抹需要修改的区域，然后在提示词里写明“{color.name}遮罩区域”要怎么改（用了多种颜色则都要写明）。
           </p>
 
           <div className="mt-auto grid grid-cols-2 gap-2">

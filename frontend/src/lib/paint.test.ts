@@ -12,3 +12,17 @@ describe('paint', () => {
     expect(fitSize(1000, 4000)).toEqual({ width: 512, height: EXPORT_MAX_EDGE })
   })
 })
+
+import { MARK_COLORS, maskAreaLabel } from './paint'
+
+describe('mark colours', () => {
+  it('offers distinct named presets, starting with the ComfyUI red', () => {
+    expect(MARK_COLORS[0]).toEqual({ name: '红色', hex: '#ff0000' })
+    expect(new Set(MARK_COLORS.map((c) => c.hex)).size).toBe(MARK_COLORS.length)
+    expect(new Set(MARK_COLORS.map((c) => c.name)).size).toBe(MARK_COLORS.length)
+  })
+  it('words the mask area for the prompt', () => {
+    expect(maskAreaLabel(['红色'])).toBe('红色遮罩区域')
+    expect(maskAreaLabel(['红色', '蓝色'])).toBe('红色和蓝色遮罩区域')
+  })
+})
