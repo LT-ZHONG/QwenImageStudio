@@ -181,62 +181,13 @@ export function MaskEditor({
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onCancel()}>
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 bg-neutral-950 p-0 text-white sm:max-w-none"
+        className="fixed inset-0 top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 md:flex-row rounded-none border-0 bg-neutral-950 p-0 text-white sm:max-w-none"
       >
         <DialogTitle className="sr-only">局部重绘</DialogTitle>
         <DialogDescription className="sr-only">用红色画笔标记需要修改的区域</DialogDescription>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 p-2">
-          <div className="inline-flex rounded-lg bg-white/10 p-0.5">
-            {(
-              [
-                ['brush', Paintbrush, '画笔 (B)'],
-                ['eraser', Eraser, '橡皮 (E)'],
-              ] as const
-            ).map(([t, Icon, label]) => (
-              <button
-                key={t}
-                title={label}
-                aria-label={label}
-                onClick={() => setTool(t)}
-                className={cn('rounded-md px-3 py-1.5', tool === t ? 'bg-white text-black' : 'text-white/70')}
-              >
-                <Icon className="size-4" />
-              </button>
-            ))}
-          </div>
-          <div className="flex w-40 items-center gap-2 px-1" title="画笔大小">
-            <span className="shrink-0 text-xs whitespace-nowrap text-white/60">大小</span>
-            <Slider value={[brushPct]} min={0.5} max={15} step={0.5} onValueChange={(v) => setBrushPct(Array.isArray(v) ? v[0] : v)} />
-          </div>
-          <div className="flex w-44 items-center gap-2 px-1" title="标记透明度（默认 60%）">
-            <span className="shrink-0 text-xs whitespace-nowrap text-white/60">透明度</span>
-            <Slider value={[opacityPct]} min={10} max={100} step={5} aria-label="标记透明度"
-              onValueChange={(v) => setOpacityPct(Array.isArray(v) ? v[0] : v)} />
-            <span className="w-9 shrink-0 text-right text-xs tabular-nums text-white/60">{opacityPct}%</span>
-          </div>
-          <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="撤销 (Ctrl+Z)" aria-label="撤销"
-            disabled={!hist.undo} onClick={() => restore(undo.current, redo.current)}>
-            <Undo2 />
-          </Button>
-          <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="重做 (Shift+Ctrl+Z)" aria-label="重做"
-            disabled={!hist.redo} onClick={() => restore(redo.current, undo.current)}>
-            <Redo2 />
-          </Button>
-          <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="清空标记" aria-label="清空标记" onClick={clearAll}>
-            <Trash2 />
-          </Button>
-          <div className="ml-auto flex gap-2">
-            <Button variant="ghost" className="text-white hover:bg-white/10" disabled={saving} onClick={onCancel}>
-              <X /> 取消
-            </Button>
-            <Button className="bg-white text-black hover:bg-white/90" disabled={!ready || saving} onClick={save}>
-              {saving ? <Loader2 className="animate-spin" /> : <Check />} 完成
-            </Button>
-          </div>
-        </div>
-
-        <div ref={stageRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-2">
+        {/* Canvas first in the DOM: below the toolbar on phones (thumb reach), left of it on md+ */}
+        <div ref={stageRef} className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-2">
           {!ready && <Loader2 className="absolute size-8 animate-spin text-white/60" />}
           <div
             className={cn('relative touch-none select-none', !ready && 'invisible')}
@@ -257,9 +208,76 @@ export function MaskEditor({
             />
           )}
         </div>
-        <p className="px-3 pb-2 text-center text-xs text-white/50">
-          用红色画笔涂抹需要修改的区域，然后在提示词里写明“红色遮罩区域”要怎么改。
-        </p>
+
+        <aside className="flex shrink-0 flex-col gap-3 overflow-y-auto border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:w-64 md:border-t-0 md:border-l md:pb-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
+            <div className="inline-flex rounded-lg bg-white/10 p-0.5">
+              {(
+                [
+                  ['brush', Paintbrush, '画笔', 'B'],
+                  ['eraser', Eraser, '橡皮', 'E'],
+                ] as const
+              ).map(([t, Icon, label, key]) => (
+                <button
+                  key={t}
+                  title={`${label} (${key})`}
+                  aria-label={`${label} (${key})`}
+                  onClick={() => setTool(t)}
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm',
+                    tool === t ? 'bg-white text-black' : 'text-white/70',
+                  )}
+                >
+                  <Icon className="size-4" /> {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-1 md:justify-start">
+              <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="撤销 (Ctrl+Z)" aria-label="撤销"
+                disabled={!hist.undo} onClick={() => restore(undo.current, redo.current)}>
+                <Undo2 />
+              </Button>
+              <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="重做 (Shift+Ctrl+Z)" aria-label="重做"
+                disabled={!hist.redo} onClick={() => restore(redo.current, undo.current)}>
+                <Redo2 />
+              </Button>
+              <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="清空标记" aria-label="清空标记" onClick={clearAll}>
+                <Trash2 />
+              </Button>
+            </div>
+
+            <div className="space-y-1.5" title="画笔大小">
+              <div className="flex justify-between text-xs text-white/60">
+                <span>大小</span>
+                <span className="tabular-nums">{brushPct}%</span>
+              </div>
+              <Slider value={[brushPct]} min={0.5} max={15} step={0.5} onValueChange={(v) => setBrushPct(Array.isArray(v) ? v[0] : v)} />
+            </div>
+
+            <div className="space-y-1.5" title="标记透明度（默认 60%）">
+              <div className="flex justify-between text-xs text-white/60">
+                <span>透明度</span>
+                <span className="tabular-nums">{opacityPct}%</span>
+              </div>
+              <Slider value={[opacityPct]} min={10} max={100} step={5} aria-label="标记透明度"
+                onValueChange={(v) => setOpacityPct(Array.isArray(v) ? v[0] : v)} />
+            </div>
+          </div>
+
+          <p className="hidden text-xs leading-relaxed text-white/50 md:mt-2 md:block">
+            用红色画笔涂抹需要修改的区域，然后在提示词里写明“红色遮罩区域”要怎么改。
+          </p>
+
+          <div className="mt-auto grid grid-cols-2 gap-2">
+            <Button variant="ghost" className="text-white hover:bg-white/10" disabled={saving} onClick={onCancel}>
+              <X /> 取消
+            </Button>
+            <Button className="bg-white text-black hover:bg-white/90" disabled={!ready || saving} onClick={save}>
+              {saving ? <Loader2 className="animate-spin" /> : <Check />} 完成
+            </Button>
+          </div>
+        </aside>
       </DialogContent>
     </Dialog>
   )
