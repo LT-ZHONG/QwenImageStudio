@@ -35,6 +35,7 @@ export function MaskEditor({
   const [size, setSize] = useState({ width: 1, height: 1 })
   const [view, setView] = useState({ w: 1, h: 1 })
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush')
+  const [opacityPct, setOpacityPct] = useState(Math.round(MARK_OPACITY * 100))
   const [brushPct, setBrushPct] = useState(4) // % of the image's long edge
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [saving, setSaving] = useState(false)
@@ -150,14 +151,14 @@ export function MaskEditor({
     }
     setSaving(true)
     try {
-      const { blob, name } = await exportPainted(imgRef.current, paintRef.current, maxBytes)
+      const { blob, name } = await exportPainted(imgRef.current, paintRef.current, maxBytes, opacityPct / 100)
       await onSave(blob, name)
     } catch (e) {
       toast.error(`保存失败：${(e as Error).message}`)
     } finally {
       setSaving(false)
     }
-  }, [maxBytes, onSave])
+  }, [maxBytes, onSave, opacityPct])
 
   // keyboard shortcuts: Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, B / E
   useEffect(() => {
@@ -208,6 +209,12 @@ export function MaskEditor({
             <span className="shrink-0 text-xs whitespace-nowrap text-white/60">大小</span>
             <Slider value={[brushPct]} min={0.5} max={15} step={0.5} onValueChange={(v) => setBrushPct(Array.isArray(v) ? v[0] : v)} />
           </div>
+          <div className="flex w-44 items-center gap-2 px-1" title="标记透明度（默认 60%）">
+            <span className="shrink-0 text-xs whitespace-nowrap text-white/60">透明度</span>
+            <Slider value={[opacityPct]} min={10} max={100} step={5} aria-label="标记透明度"
+              onValueChange={(v) => setOpacityPct(Array.isArray(v) ? v[0] : v)} />
+            <span className="w-9 shrink-0 text-right text-xs tabular-nums text-white/60">{opacityPct}%</span>
+          </div>
           <Button size="icon" variant="ghost" className="text-white hover:bg-white/10" title="撤销 (Ctrl+Z)" aria-label="撤销"
             disabled={!hist.undo} onClick={() => restore(undo.current, redo.current)}>
             <Undo2 />
@@ -241,7 +248,7 @@ export function MaskEditor({
             onPointerLeave={() => setCursor(null)}
           >
             <canvas ref={baseRef} className="absolute inset-0 size-full" />
-            <canvas ref={paintRef} className="absolute inset-0 size-full" style={{ opacity: MARK_OPACITY }} />
+            <canvas ref={paintRef} className="absolute inset-0 size-full" style={{ opacity: opacityPct / 100 }} />
           </div>
           {cursor && ready && (
             <div

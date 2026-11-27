@@ -1,6 +1,6 @@
 /** Mark colour/opacity mirror what ComfyUI's MaskEditor "Paint Pen" produces: RGB(255,0,0) at ~60 %. */
 export const MARK_COLOR = '#ff0000'
-export const MARK_OPACITY = 0.6
+export const MARK_OPACITY = 0.6 // default; the editor lets the user change it
 /** The model rescales references to ~resolution², so larger exports only cost upload size. */
 export const EXPORT_MAX_EDGE = 2048
 
@@ -24,18 +24,19 @@ export function hasPaint(layer: HTMLCanvasElement): boolean {
   return false
 }
 
-/** Base image + paint layer (opaque red strokes drawn at MARK_OPACITY) flattened into one image. */
+/** Base image + paint layer (opaque red strokes composited at `opacity`) flattened into one image. */
 export async function exportPainted(
   base: HTMLImageElement,
   layer: HTMLCanvasElement,
   maxBytes: number,
+  opacity: number = MARK_OPACITY,
 ): Promise<{ blob: Blob; name: string }> {
   const out = document.createElement('canvas')
   out.width = layer.width
   out.height = layer.height
   const ctx = out.getContext('2d')!
   ctx.drawImage(base, 0, 0, out.width, out.height)
-  ctx.globalAlpha = MARK_OPACITY
+  ctx.globalAlpha = opacity
   ctx.drawImage(layer, 0, 0)
   const toBlob = (type: string, q?: number) =>
     new Promise<Blob | null>((res) => out.toBlob(res, type, q))
