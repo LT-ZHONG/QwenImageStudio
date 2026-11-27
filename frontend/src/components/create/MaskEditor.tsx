@@ -182,7 +182,7 @@ export function MaskEditor({
         showCloseButton={false}
         className="fixed inset-0 top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 bg-neutral-950 p-0 text-white sm:max-w-none"
       >
-        <DialogTitle className="sr-only">涂抹标记</DialogTitle>
+        <DialogTitle className="sr-only">局部重绘</DialogTitle>
         <DialogDescription className="sr-only">用红色画笔标记需要修改的区域</DialogDescription>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 p-2">

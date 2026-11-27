@@ -175,7 +175,7 @@ export function ImageUploader({ disabled }: { disabled?: boolean }) {
               {originalId && !uploading && <span className="ml-2 rounded bg-red-500/15 px-1.5 py-0.5 text-red-600 dark:text-red-400">已标记</span>}
             </span>
             <Button size="xs" variant="ghost" disabled={disabled || uploading || !editSource} onClick={() => setEditing(true)}>
-              <Brush /> {originalId ? '重新标记' : '涂抹标记'}
+              <Brush /> {originalId ? '重新标记' : '局部重绘'}
             </Button>
             {originalId && (
               <Button size="xs" variant="ghost" disabled={disabled || uploading} onClick={clearMarks}>
